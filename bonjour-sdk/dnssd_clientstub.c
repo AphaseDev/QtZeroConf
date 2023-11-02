@@ -52,11 +52,13 @@
     #define sockaddr_mdns sockaddr_in
     #define AF_MDNS AF_INET
 
+#ifdef _MSC_VER // Just for MSVC
 // Disable warning: "'type cast' : from data pointer 'void *' to function pointer"
     #pragma warning(disable:4055)
 
 // Disable warning: "nonstandard extension, function/data pointer conversion in expression"
     #pragma warning(disable:4152)
+#endif
 
 extern BOOL IsSystemServiceDisabled();
 

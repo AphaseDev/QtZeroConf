@@ -55,9 +55,9 @@ public:
 	bool publishExists(void);
 	inline void startBrowser(QString type)
 	{
-		startBrowser(type, QAbstractSocket::IPv4Protocol);
-	}
-	void startBrowser(QString type, QAbstractSocket::NetworkLayerProtocol protocol);
+        startBrowser(type, QAbstractSocket::IPv4Protocol, 0, false);
+    }
+    void startBrowser(QString type, QAbstractSocket::NetworkLayerProtocol protocol, uint32_t interfaceIndex=0, bool includeP2P=false);
 	void stopBrowser(void);
 	bool browserExists(void);
 	void addServiceTxtRecord(QString nameOnly);

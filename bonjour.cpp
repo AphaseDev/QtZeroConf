@@ -124,13 +124,13 @@ void DNSSD_API QZeroConfPrivate::browseCallback(DNSServiceRef, DNSServiceFlags f
 
 	//qDebug() << name;
 	if (err == kDNSServiceErr_NoError) {
-		key = name + QString::number(interfaceIndex);
+        key = QLatin1String(name) + QString::number(interfaceIndex);
 		if (flags & kDNSServiceFlagsAdd) {
 			if (!ref->pub->services.contains(key)) {
 				zcs = QZeroConfService::create();
-				zcs->m_name = name;
-				zcs->m_type = type;
-				zcs->m_domain = domain;
+				zcs->m_name = QLatin1String(name);
+				zcs->m_type = QLatin1String(type);
+				zcs->m_domain = QLatin1String(domain);
 				zcs->m_interfaceIndex = interfaceIndex;
 				ref->resolve(zcs);
 			}
@@ -176,7 +176,7 @@ void DNSSD_API QZeroConfPrivate::resolverCallback(DNSServiceRef, DNSServiceFlags
 		txtLen-= recLen + 1;
 		txtRecord+= recLen;
 	}
-	resolver->zcs->m_host = hostName;
+    resolver->zcs->m_host = QLatin1String(hostName);
 	resolver->zcs->m_port = qFromBigEndian<quint16>(port);
 
 	if (resolver->DNSaddressRef) {
@@ -324,7 +324,7 @@ void QZeroConf::addServiceTxtRecord(QString nameOnly)
 
 void QZeroConf::addServiceTxtRecord(QString name, QString value)
 {
-	name.append("=");
+    name.append(QLatin1String("="));
 	name.append(value);
 	addServiceTxtRecord(name);
 }
@@ -334,7 +334,7 @@ void QZeroConf::clearServiceTxtRecords()
 	pri->txt.clear();
 }
 
-void QZeroConf::startBrowser(QString type, QAbstractSocket::NetworkLayerProtocol protocol)
+void QZeroConf::startBrowser(QString type, QAbstractSocket::NetworkLayerProtocol protocol, uint32_t interfaceIndex, bool includeP2P)
 {
 	DNSServiceErrorType err;
 
@@ -352,7 +352,11 @@ void QZeroConf::startBrowser(QString type, QAbstractSocket::NetworkLayerProtocol
 			break;
 	}
 
-	err = DNSServiceBrowse(&pri->browser, 0, 0, type.toUtf8(), nullptr, static_cast<DNSServiceBrowseReply>(QZeroConfPrivate::browseCallback), pri);
+    DNSServiceFlags flags = 0;
+    if (includeP2P) {
+        flags |= kDNSServiceFlagsIncludeP2P;
+    }
+    err = DNSServiceBrowse(&pri->browser, flags, interfaceIndex, type.toUtf8(), nullptr, static_cast<DNSServiceBrowseReply>(QZeroConfPrivate::browseCallback), pri);
 	if (err == kDNSServiceErr_NoError) {
 		int sockfd = DNSServiceRefSockFD(pri->browser);
 		if (sockfd == -1) {

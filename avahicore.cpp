@@ -31,6 +31,7 @@
 #include <avahi-core/lookup.h>
 #include <avahi-common/simple-watch.h>
 #include <QCoreApplication>
+#include <QMap>
 #include "qzeroconf.h"
 
 class QZeroConfPrivate
@@ -174,10 +175,10 @@ public:
 			else {
 				zcs = QZeroConfService(new QZeroConfServiceData);
 				newRecord = 1;
-				zcs->m_name = name;
-				zcs->m_type = type;
-				zcs->m_domain = domain;
-				zcs->m_host = host_name;
+				zcs->m_name = QLatin1String(name);
+				zcs->m_type = QLatin1String(type);
+				zcs->m_domain = QLatin1String(domain);
+				zcs->m_host = QLatin1String(host_name);
 				zcs->m_interfaceIndex = interface;
 				zcs->m_port = port;
 				while (txt)	// get txt records
@@ -195,7 +196,7 @@ public:
 
 			char a[AVAHI_ADDRESS_STR_MAX];
 			avahi_address_snprint(a, sizeof(a), address);
-			QHostAddress addr(a);
+			QHostAddress addr((QLatin1String(a)));
 			zcs->setIp(addr);
 
 			if (newRecord)
@@ -304,9 +305,9 @@ void QZeroConf::startServicePublish(const char *name, const char *type, const ch
 		pri->registerService(name, type, domain, port, interface);
 	else {
 		pri->registerWaiting = 1;
-		pri->name = name;
-		pri->type = type;
-		pri->domain = domain;
+		pri->name = QLatin1String(name);
+		pri->type = QLatin1String(type);
+		pri->domain = QLatin1String(domain);
 		pri->port = port;
 	}
 }
@@ -336,7 +337,7 @@ void QZeroConf::addServiceTxtRecord(QString nameOnly)
 
 void QZeroConf::addServiceTxtRecord(QString name, QString value)
 {
-	name.append("=");
+	name.append(QLatin1String("="));
 	name.append(value);
 	addServiceTxtRecord(name);
 }
