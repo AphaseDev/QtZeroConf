@@ -25,7 +25,11 @@
 ---------------------------------------------------------------------------------------------------
 **************************************************************************************************/
 #include <QGuiApplication>
+#include <QRegularExpression>
 #include "androidnsd_p.h"
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+using QAndroidJniEnvironment = QJniEnvironment;
+#endif
 
 Q_DECLARE_METATYPE(QHostAddress)
 
@@ -53,7 +57,14 @@ QZeroConfPrivate::QZeroConfPrivate(QZeroConf *parent)
 	// There seems to be no straight forward way to match the "thiz" pointer from JNI calls to our pointer of the Java class
 	// Passing "this" as ID down to Java so we can access "this" in callbacks.
 	// Note: needs to be quint64 as uintptr_t might be 32 or 64 bit depending on the system, while Java expects a jlong which is always 64 bit.
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	nsdManager = QAndroidJniObject("qtzeroconf/QZeroConfNsdManager", "(JLandroid/content/Context;)V", reinterpret_cast<quint64>(this), QtAndroid::androidActivity().object());
+#elif (QT_VERSION < QT_VERSION_CHECK(6, 7, 0))
+	nsdManager = QAndroidJniObject("qtzeroconf/QZeroConfNsdManager", "(JLandroid/content/Context;)V", reinterpret_cast<quint64>(this), QNativeInterface::QAndroidApplication::context());
+#else
+	// QNativeInterface does not provide source compatibility.   https://bugreports.qt.io/browse/QTBUG-123900    https://forum.qt.io/topic/157493/binary-and-source-compatibility-breakage-in-6-7
+	nsdManager = QAndroidJniObject("qtzeroconf/QZeroConfNsdManager", "(JLandroid/content/Context;)V", reinterpret_cast<quint64>(this), QNativeInterface::QAndroidApplication::context().object<jobject>());
+#endif
 	if (nsdManager.isValid()) {
 		jclass objectClass = env->GetObjectClass(nsdManager.object<jobject>());
 		env->RegisterNatives(objectClass, methods, sizeof(methods) / sizeof(methods[0]));
@@ -80,7 +91,11 @@ void QZeroConfPrivate::startServicePublish(const char *name, const char *type, q
 	QAndroidJniObject ref(nsdManager);
 	publishName = name;
 	publishType = type;
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	QtAndroid::runOnAndroidThread([=](){
+#else
+	QNativeInterface::QAndroidApplication::runOnAndroidMainThread([=]() {
+#endif
 		QAndroidJniObject txtMap("java/util/HashMap");
 		foreach (const QByteArray &key, txtRecords.keys()) {
 			txtMap.callObjectMethod("put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
@@ -105,7 +120,11 @@ void QZeroConfPrivate::stopServicePublish()
 	if (qGuiApp->applicationState() == Qt::ApplicationSuspended) {
 		ref.callMethod<void>("unregisterService");
 	} else {
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 		QtAndroid::runOnAndroidThread([ref]() {
+#else
+		QNativeInterface::QAndroidApplication::runOnAndroidMainThread([ref]() {
+#endif
 			ref.callMethod<void>("unregisterService");
 		});
 	}
@@ -115,7 +134,11 @@ void QZeroConfPrivate::startBrowser(QString type, QAbstractSocket::NetworkLayerP
 {
 	Q_UNUSED(protocol)
 	QAndroidJniObject ref(nsdManager);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	QtAndroid::runOnAndroidThread([ref, type]() {
+#else
+	QNativeInterface::QAndroidApplication::runOnAndroidMainThread([ref, type]() {
+#endif
 		ref.callMethod<void>("discoverServices", "(Ljava/lang/String;)V", QAndroidJniObject::fromString(type).object<jstring>());
 	});
 }
@@ -128,7 +151,11 @@ void QZeroConfPrivate::stopBrowser()
 	if (qGuiApp->applicationState() == Qt::ApplicationSuspended) {
 		ref.callMethod<void>("stopServiceDiscovery");
 	} else {
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 		QtAndroid::runOnAndroidThread([ref]() {
+#else
+		QNativeInterface::QAndroidApplication::runOnAndroidMainThread([ref]() {
+#endif
 			ref.callMethod<void>("stopServiceDiscovery");
 		});
 	}
@@ -230,7 +257,7 @@ void QZeroConfPrivate::onServiceResolved(const QString &name, const QString &typ
 	zcs->m_type = type;
 	// A previous implementation (based on avahi) returned service type as "_http._tcp" but Android API return "._http._tcp"
 	// Stripping leading dot for backwards compatibility. FIXME: Still not in line with bonjour, which adds a trailing dot.
-	zcs->m_type.remove(QRegExp("^."));
+	zcs->m_type.remove(QRegularExpression("^."));
 	zcs->m_host = hostname;
 	zcs->m_port = port;
 	zcs->m_ip = address;
