@@ -226,19 +226,19 @@ QZeroConf::~QZeroConf()
 	delete pri;
 }
 
-void QZeroConf::startServicePublish(const char *name, const char *type, const char *domain, quint16 port, quint32 interface)
+void QZeroConf::startServicePublish(const char *name, const char *type, const char *domain, quint16 port, quint32 interfaceIndex)
 {
 	if (!pri->client || pri->group) {  // check client is ok (avahi daemon is running) and group is not already configured
 		emit error(QZeroConf::serviceRegistrationFailed);
 		return;
 	}
-	if (interface <= 0) {
-		interface = AVAHI_IF_UNSPEC;
+	if (interfaceIndex <= 0) {
+		interfaceIndex = AVAHI_IF_UNSPEC;
 	}
 
 	pri->group = avahi_entry_group_new(pri->client, QZeroConfPrivate::groupCallback, pri);
 
-	int ret = avahi_entry_group_add_service_strlst(pri->group, interface, AVAHI_PROTO_UNSPEC, AVAHI_PUBLISH_UPDATE, name, type, domain, NULL, port, pri->txt);
+	int ret = avahi_entry_group_add_service_strlst(pri->group, interfaceIndex, AVAHI_PROTO_UNSPEC, AVAHI_PUBLISH_UPDATE, name, type, domain, NULL, port, pri->txt);
 	if (ret < 0) {
 		avahi_entry_group_free(pri->group);
 		pri->group = NULL;

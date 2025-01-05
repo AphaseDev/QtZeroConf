@@ -295,14 +295,14 @@ QZeroConf::~QZeroConf()
 	delete pri;
 }
 
-void QZeroConf::startServicePublish(const char *name, const char *type, const char *domain, quint16 port, quint32 interface)
+void QZeroConf::startServicePublish(const char *name, const char *type, const char *domain, quint16 port, quint32 interfaceIndex)
 {
 	if (pri->group) {
 		emit error(QZeroConf::serviceRegistrationFailed);
 		return;
 	}
 	if (pri->ready)
-		pri->registerService(name, type, domain, port, interface);
+		pri->registerService(name, type, domain, port, interfaceIndex);
 	else {
 		pri->registerWaiting = 1;
 		pri->name = QLatin1String(name);
