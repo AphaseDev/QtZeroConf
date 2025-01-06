@@ -104,7 +104,7 @@ It is recommended, but not required, that you connect a slot to QZeroConf's erro
 
 4) Optionally connect a slot to QZeroConf's serviceRemoved() signal to received status when the service is unpublished.   ServiceRemoved() passes the QZeroConfService being removed.
 
-5) Call startBrowser() with the type of the service to browse for and optionally the protocol to use.
+5) Call startBrowser() with the type of the service to browse for and optionally the protocol to use and the index of the network interface in which to browse.
 
 ```c++
 startBrowser("_test._tcp");
@@ -122,7 +122,7 @@ qDebug() << zcs->txt["Qt"];
 ```
 **QML**
 
-QZeroConf can be used in QML applications
+QZeroConf can be used in QML applications.
 
 
 ### Build Dependencies
