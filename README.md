@@ -98,7 +98,7 @@ Only one service can be published per instance of QZeroConf.
 ```c++
 QZeroConf zeroConf;
 ```
-It is recommend, but not required, that you connect a slot to QZeroConf's error() signal.
+It is recommended, but not required, that you connect a slot to QZeroConf's error() signal.
 
 3) Connect a slot to QZeroConf's serviceAdded() signal.  When serviceAdded() is emitted, it passes the QZeroConfService recently discovered.  QZeroConfServices are [shared objects](http://doc.qt.io/qt-5/implicit-sharing.html).  They are safe to use between threads.
 
@@ -109,9 +109,11 @@ It is recommend, but not required, that you connect a slot to QZeroConf's error(
 ```c++
 startBrowser("_test._tcp");
 ```
-If you are browsing for services published using both ipv4 and ipv6 ( QAbstractSocket::AnyIPProtocol) you should also connect a slot to QzeroConf's serviceUpdated() signal.  When the IP address of the first protocol is resolved,  serviceAdded() is emitted, when the IP address of the second protocol is resolved,  serviceUpdated() is emitted.
+If you are browsing for services published using both ipv4 and ipv6 (QAbstractSocket::AnyIPProtocol) you should also connect a slot to QZeroConf's serviceUpdated() signal.  When the IP address of the first protocol is resolved,  serviceAdded() is emitted, when the IP address of the second protocol is resolved,  serviceUpdated() is emitted.
 
-Only one browser can be in use per instance of QzeroConf.
+By default, services browsing is performed on all network interfaces. You can browse to a particular network interface by passing the index of QNetworkInterface.
+
+Only one browser can be in use per instance of QZeroConf.
 
 **Txt records** are placed into a QMap called txt within the discovered service. For example, the value of txt record "Qt=The Best!" can be retrieved with the code... 
 
