@@ -212,24 +212,29 @@ void DNSSD_API QZeroConfPrivate::addressReply(DNSServiceRef sdRef,
 	Q_UNUSED(hostName)
 
 	Resolver *resolver = static_cast<Resolver *>(userdata);
+	QZeroConf *l_pub = dynamic_cast<QZeroConf *>(resolver->ref->pub);
 
-	if (err == kDNSServiceErr_NoError) {
+	if (err == kDNSServiceErr_NoError && l_pub) {
 		if ((flags & kDNSServiceFlagsAdd) != 0) {
 			QHostAddress hAddress(address);
 			resolver->zcs->setIp(hAddress);
 
 			QString key = resolver->zcs->name() + QString::number(interfaceIndex);
-			if (!resolver->ref->pub->services.contains(key)) {
-				resolver->ref->pub->services.insert(key, resolver->zcs);
-				emit resolver->ref->pub->serviceAdded(resolver->zcs);
+			if (!l_pub->services.contains(key))
+			{
+				l_pub->services.insert(key, resolver->zcs);
+				emit l_pub->serviceAdded(resolver->zcs);
 			}
 			else
-				emit resolver->ref->pub->serviceUpdated(resolver->zcs);
-
+			{
+				emit l_pub->serviceUpdated(resolver->zcs);
+			}
 		}
 	}
 	else
+	{
 		resolver->cleanUp();
+	}
 }
 
 void QZeroConfPrivate::cleanUp(DNSServiceRef toClean)
