@@ -77,7 +77,7 @@ static void syslog( int priority, const char * message, ...)
     va_start( args, message );
     len = _vscprintf( message, args ) + 1;
     buffer = malloc( len * sizeof(char) );
-    if ( buffer ) { vsnprintf( buffer, len, message, args ); OutputDebugString( buffer ); free( buffer ); }
+    if ( buffer ) { vsnprintf( buffer, len, message, args ); printf( "# QZeroConf::syslog:" ); printf( buffer ); printf( "\n" ); fflush(stdout); free( buffer ); }
     WSASetLastError( err );
 }
 #else
