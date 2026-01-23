@@ -103,50 +103,61 @@ void QZeroConfPrivate::resolve(QZeroConfService zcs)
 
 void DNSSD_API QZeroConfPrivate::registerCallback(DNSServiceRef, DNSServiceFlags, DNSServiceErrorType errorCode, const char *, const char *, const char *, void *userdata)
 {
-	QZeroConfPrivate *ref = static_cast<QZeroConfPrivate *>(userdata);
-
-	if (errorCode == kDNSServiceErr_NoError) {
-		emit ref->pub->servicePublished();
-	}
-	else {
-		ref->cleanUp(ref->dnssRef);
-		emit ref->pub->error(QZeroConf::serviceRegistrationFailed);
-	}
+    QObject *base = static_cast<QObject *>(userdata);
+    QZeroConfPrivate *ref = dynamic_cast<QZeroConfPrivate *>(base);
+    if (ref) {
+        if (errorCode == kDNSServiceErr_NoError) {
+            emit ref->pub->servicePublished();
+        }
+        else {
+            ref->cleanUp(ref->dnssRef);
+            emit ref->pub->error(QZeroConf::serviceRegistrationFailed);
+        }
+    }
+    else {
+        qDebug() << __FUNCTION__ << "userdata is corrupted";
+    }
 }
 
 void DNSSD_API QZeroConfPrivate::browseCallback(DNSServiceRef, DNSServiceFlags flags,
-		quint32 interfaceIndex, DNSServiceErrorType err, const char *name,
-		const char *type, const char *domain, void *userdata)
+        quint32 interfaceIndex, DNSServiceErrorType err, const char *name,
+        const char *type, const char *domain, void *userdata)
 {
-	QString key;
-	QZeroConfService zcs;
-	QZeroConfPrivate *ref = static_cast<QZeroConfPrivate *>(userdata);
+    QString key;
+    QZeroConfService zcs;
 
-	//qDebug() << name;
-	if (err == kDNSServiceErr_NoError) {
-        key = QLatin1String(name) + QString::number(interfaceIndex);
-		if (flags & kDNSServiceFlagsAdd) {
-			if (!ref->pub->services.contains(key)) {
-				zcs = QZeroConfService::create();
-				zcs->m_name = QLatin1String(name);
-				zcs->m_type = QLatin1String(type);
-				zcs->m_domain = QLatin1String(domain);
-				zcs->m_interfaceIndex = interfaceIndex;
-				ref->resolve(zcs);
-			}
-		}
-		else if (ref->pub->services.contains(key)) {
-			zcs = ref->pub->services[key];
-			ref->pub->services.remove(key);
-			if (ref->resolvers.contains(key))
-				ref->resolvers[key]->cleanUp();
-			emit ref->pub->serviceRemoved(zcs);
-		}
-	}
-	else {
-		ref->cleanUp(ref->browser);
-		emit ref->pub->error(QZeroConf::browserFailed);
-	}
+    QObject *base = static_cast<QObject *>(userdata);
+    QZeroConfPrivate *ref = dynamic_cast<QZeroConfPrivate *>(base);
+
+    if (ref) {
+        if (err == kDNSServiceErr_NoError) {
+            key = QLatin1String(name) + QString::number(interfaceIndex);
+            if (flags & kDNSServiceFlagsAdd) {
+                if (!ref->pub->services.contains(key)) {
+                    zcs = QZeroConfService::create();
+                    zcs->m_name = QLatin1String(name);
+                    zcs->m_type = QLatin1String(type);
+                    zcs->m_domain = QLatin1String(domain);
+                    zcs->m_interfaceIndex = interfaceIndex;
+                    ref->resolve(zcs);
+                }
+            }
+            else if (ref->pub->services.contains(key)) {
+                zcs = ref->pub->services[key];
+                ref->pub->services.remove(key);
+                if (ref->resolvers.contains(key))
+                    ref->resolvers[key]->cleanUp();
+                emit ref->pub->serviceRemoved(zcs);
+            }
+        }
+        else {
+            ref->cleanUp(ref->browser);
+            emit ref->pub->error(QZeroConf::browserFailed);
+        }
+    }
+    else {
+        qDebug() << __FUNCTION__ << "userdata is corrupted";
+    }
 }
 
 void DNSSD_API QZeroConfPrivate::resolverCallback(DNSServiceRef, DNSServiceFlags,
@@ -154,7 +165,12 @@ void DNSSD_API QZeroConfPrivate::resolverCallback(DNSServiceRef, DNSServiceFlags
 		const char *hostName, quint16 port, quint16 txtLen,
 		const unsigned char *txtRecord, void *userdata)
 {
-	Resolver *resolver = static_cast<Resolver *>(userdata);
+    QObject *base = static_cast<QObject *>(userdata);
+    Resolver *resolver = dynamic_cast<Resolver *>(base);
+    if (!resolver) {
+        qDebug() << __FUNCTION__ << "userdata is corrupted";
+        return;
+    }
 
 	if (err != kDNSServiceErr_NoError) {
 		resolver->cleanUp();
@@ -211,50 +227,54 @@ void DNSSD_API QZeroConfPrivate::addressReply(DNSServiceRef sdRef,
 	Q_UNUSED(ttl)
 	Q_UNUSED(hostName)
 
-	Resolver *resolver = static_cast<Resolver *>(userdata);
-	QZeroConf *l_pub = dynamic_cast<QZeroConf *>(resolver->ref->pub);
+    QObject *base = static_cast<QObject *>(userdata);
+    Resolver *resolver = dynamic_cast<Resolver *>(base);
 
-	if (err == kDNSServiceErr_NoError && l_pub) {
-		if ((flags & kDNSServiceFlagsAdd) != 0) {
-			QHostAddress hAddress(address);
-			resolver->zcs->setIp(hAddress);
+    if (resolver) {
+        if (err == kDNSServiceErr_NoError) {
+            if ((flags & kDNSServiceFlagsAdd) != 0) {
+                QHostAddress hAddress(address);
+                resolver->zcs->setIp(hAddress);
 
 			QString key = resolver->zcs->name() + QString::number(interfaceIndex);
-			if (!l_pub->services.contains(key))
-			{
-				l_pub->services.insert(key, resolver->zcs);
-				emit l_pub->serviceAdded(resolver->zcs);
+			if (!resolver->ref->pub->services.contains(key)) {
+				resolver->ref->pub->services.insert(key, resolver->zcs);
+				emit resolver->ref->pub->serviceAdded(resolver->zcs);
 			}
 			else
-			{
-				emit l_pub->serviceUpdated(resolver->zcs);
-			}
-		}
-	}
-	else
-	{
-		resolver->cleanUp();
-	}
+				emit resolver->ref->pub->serviceUpdated(resolver->zcs);
+
+            }
+        }
+        else {
+            resolver->cleanUp();
+        }
+    }
+    else {
+        qDebug() << __FUNCTION__ << "userdata is corrupted";
+    }
 }
 
 void QZeroConfPrivate::cleanUp(DNSServiceRef toClean)
 {
-	if (!toClean)
-		return;
-	else if (toClean == browser) {
-		browser = nullptr;
-		browserNotifier.clear();
-		for (auto resolver : resolvers)
-			resolver->cleanUp();
-		resolvers.clear();
-		for (auto service : pub->services)
-			emit pub->serviceRemoved(service);
-		pub->services.clear();
-	}
-	else if (toClean == dnssRef) {
-		dnssRef = nullptr;
-		serviceNotifier.clear();
-	}
+    if (!toClean)
+        return;
+    else if (toClean == browser) {
+        browser = nullptr;
+        browserNotifier.clear();
+        const QList<Resolver*> resolverList = resolvers.values();
+        for (Resolver *resolver : resolverList)
+            resolver->cleanUp();
+        resolvers.clear();
+        const QList<QZeroConfService> serviceList = pub->services.values();
+        pub->services.clear();
+        for (const QZeroConfService &service : serviceList)
+            emit pub->serviceRemoved(service);
+    }
+    else if (toClean == dnssRef) {
+        dnssRef = nullptr;
+        serviceNotifier.clear();
+    }
 
 	DNSServiceRefDeallocate(toClean);
 }
